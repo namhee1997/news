@@ -1,6 +1,8 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+require_once get_template_directory() . '/inc/stats-telegram.php';
+
 /* ===== Theme Setup ===== */
 function news1_setup() {
     load_theme_textdomain( 'news-1', get_template_directory() . '/languages' );
@@ -35,7 +37,7 @@ add_action( 'after_setup_theme', function() {
 
 /* ===== Enqueue Scripts & Styles ===== */
 function news1_scripts() {
-    wp_enqueue_style( 'news1-style', get_stylesheet_uri(), [], '1.1.0' );
+    wp_enqueue_style( 'news1-style', get_stylesheet_uri(), [], '1.1.1' );
     wp_enqueue_style( 'google-fonts', 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap', [], null );
     wp_enqueue_script( 'news1-main', get_template_directory_uri() . '/assets/js/main.js', [ 'jquery' ], '1.1.0', true );
 
@@ -53,8 +55,15 @@ add_action( 'wp_enqueue_scripts', 'news1_scripts' );
 /* ===== Post View Count ===== */
 function news1_count_views( $post_id ) {
     if ( is_admin() || wp_is_json_request() ) return;
+
+    // All-time count
     $count = (int) get_post_meta( $post_id, '_post_views_count', true );
     update_post_meta( $post_id, '_post_views_count', $count + 1 );
+
+    // Daily count — key format: _post_views_20260530
+    $today_key   = '_post_views_' . date( 'Ymd' );
+    $today_count = (int) get_post_meta( $post_id, $today_key, true );
+    update_post_meta( $post_id, $today_key, $today_count + 1 );
 }
 
 add_action( 'wp_head', function() {
@@ -65,6 +74,11 @@ add_action( 'wp_head', function() {
 
 function news1_get_views( $post_id = null ) {
     return (int) get_post_meta( $post_id ?: get_the_ID(), '_post_views_count', true );
+}
+
+// Trả về meta key view của hôm nay
+function news1_today_view_key() {
+    return '_post_views_' . date( 'Ymd' );
 }
 
 /* ===== SEO Meta Tags ===== */
@@ -178,7 +192,13 @@ add_action( 'widgets_init', 'news1_widgets_init' );
 /* ===== Comments: only Name + Content, no email/login required ===== */
 
 // No login needed to comment (overrides Settings → Discussion)
-add_filter( 'option_comment_registration', '__return_zero' );
+add_filter( 'option_comment_registration',        '__return_zero' );
+
+// Auto-approve first-time commenters (no manual moderation queue)
+add_filter( 'option_comment_previously_approved', '__return_zero' );
+
+// Disable comment flood protection (too quickly error)
+add_filter( 'comment_flood_filter', '__return_false' );
 
 // Name field not required either
 add_filter( 'option_require_name_email', '__return_false' );
@@ -342,21 +362,119 @@ function news1_us_date() {
 
 /* ===== Helper: Trending posts query ===== */
 function news1_trending_query( $count = 10 ) {
-    $q = new WP_Query( [
+    // Bước 1: lấy IDs post có view, sort theo view giảm dần
+    $viewed_q   = new WP_Query( [
         'posts_per_page'      => $count,
+        'fields'              => 'ids',
         'meta_key'            => '_post_views_count',
         'orderby'             => 'meta_value_num',
         'order'               => 'DESC',
         'ignore_sticky_posts' => true,
         'meta_query'          => [ [ 'key' => '_post_views_count', 'compare' => 'EXISTS' ] ],
     ] );
-    if ( ! $q->have_posts() ) {
-        $q = new WP_Query( [ 'posts_per_page' => $count, 'ignore_sticky_posts' => true ] );
+    $viewed_ids = (array) $viewed_q->posts;
+    $found      = count( $viewed_ids );
+
+    // Bước 2: nếu chưa đủ, lấy thêm IDs post mới nhất chưa có view
+    $all_ids = $viewed_ids;
+    if ( $found < $count ) {
+        $exclude = $found > 0 ? $viewed_ids : [ 0 ];
+        $fill_q  = new WP_Query( [
+            'posts_per_page'      => $count - $found,
+            'fields'              => 'ids',
+            'orderby'             => 'date',
+            'order'               => 'DESC',
+            'ignore_sticky_posts' => true,
+            'post__not_in'        => $exclude,
+        ] );
+        $all_ids = array_merge( $viewed_ids, (array) $fill_q->posts );
     }
-    return $q;
+
+    if ( empty( $all_ids ) ) {
+        return new WP_Query( [ 'posts_per_page' => $count, 'ignore_sticky_posts' => true ] );
+    }
+
+    // Bước 3: 1 query sạch với đủ IDs, giữ nguyên thứ tự
+    return new WP_Query( [
+        'post__in'            => $all_ids,
+        'posts_per_page'      => $count,
+        'orderby'             => 'post__in',
+        'ignore_sticky_posts' => true,
+    ] );
 }
 
 /* ===== Admin: hide update nag for non-admins ===== */
 add_action( 'admin_head', function() {
     if ( ! current_user_can( 'update_core' ) ) remove_action( 'admin_notices', 'update_nag', 3 );
 } );
+
+/* ===== Contact Messages CPT ===== */
+add_action( 'init', function() {
+    register_post_type( 'contact_message', [
+        'labels' => [
+            'name'          => 'Contact Messages',
+            'singular_name' => 'Contact Message',
+            'menu_name'     => 'Contact Messages',
+            'all_items'     => 'All Messages',
+            'view_item'     => 'View Message',
+        ],
+        'public'              => false,
+        'show_ui'             => true,
+        'show_in_menu'        => true,
+        'menu_icon'           => 'dashicons-email-alt',
+        'capability_type'     => 'post',
+        'capabilities'        => [ 'create_posts' => 'do_not_allow' ],
+        'map_meta_cap'        => true,
+        'supports'            => [ 'title' ],
+        'has_archive'         => false,
+    ] );
+} );
+
+// Extra columns in admin list view
+add_filter( 'manage_contact_message_posts_columns', function( $cols ) {
+    return [
+        'cb'      => $cols['cb'],
+        'title'   => 'Subject',
+        'cm_name'    => 'Name',
+        'cm_email'   => 'Email',
+        'cm_message' => 'Message',
+        'date'    => 'Date',
+    ];
+} );
+
+add_action( 'manage_contact_message_posts_custom_column', function( $col, $post_id ) {
+    switch ( $col ) {
+        case 'cm_name':    echo esc_html( get_post_meta( $post_id, '_cm_name', true ) );    break;
+        case 'cm_email':
+            $email = get_post_meta( $post_id, '_cm_email', true );
+            echo '<a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a>';
+            break;
+        case 'cm_message': echo esc_html( wp_trim_words( get_post_meta( $post_id, '_cm_message', true ), 12 ) ); break;
+    }
+}, 10, 2 );
+
+// Metabox showing full message in edit screen
+add_action( 'add_meta_boxes', function() {
+    add_meta_box( 'cm_detail', 'Message Detail', function( $post ) {
+        $name    = get_post_meta( $post->ID, '_cm_name', true );
+        $email   = get_post_meta( $post->ID, '_cm_email', true );
+        $message = get_post_meta( $post->ID, '_cm_message', true );
+        echo '<p><strong>Name:</strong> ' . esc_html( $name ) . '</p>';
+        echo '<p><strong>Email:</strong> <a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a></p>';
+        echo '<p><strong>Message:</strong></p>';
+        echo '<div style="background:#f9f9f9;padding:12px;border:1px solid #ddd;border-radius:4px;white-space:pre-wrap;">' . esc_html( $message ) . '</div>';
+    }, 'contact_message', 'normal', 'high' );
+} );
+
+function news1_save_contact_message( $name, $email, $subject, $message ) {
+    return wp_insert_post( [
+        'post_type'   => 'contact_message',
+        'post_title'  => sanitize_text_field( $subject ),
+        'post_status' => 'publish',
+        'meta_input'  => [
+            '_cm_name'    => sanitize_text_field( $name ),
+            '_cm_email'   => sanitize_email( $email ),
+            '_cm_message' => sanitize_textarea_field( $message ),
+        ],
+    ] );
+}

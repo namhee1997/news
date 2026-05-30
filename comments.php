@@ -24,28 +24,37 @@ if ( post_password_required() ) return;
                 $GLOBALS['comment'] = $comment;
                 ?>
                 <li id="comment-<?php comment_ID(); ?>" <?php comment_class( 'comment' ); ?>>
-                    <div class="comment-meta-line">
-                        <span class="comment-author-name"><?php comment_author(); ?></span>
-                        <span class="comment-date-info">
-                            <?php comment_date(); ?> <?php _e( 'at', 'news-1' ); ?> <?php comment_time(); ?>
-                        </span>
-                    </div>
-
-                    <?php if ( '0' === $comment->comment_approved ) : ?>
-                    <p class="comment-pending"><?php _e( 'Your comment is awaiting moderation.', 'news-1' ); ?></p>
-                    <?php endif; ?>
-
-                    <div class="comment-text"><?php comment_text(); ?></div>
-
                     <?php
-                    comment_reply_link( array_merge( $args, [
-                        'depth'     => $depth,
-                        'max_depth' => $args['max_depth'],
-                        'before'    => '<div>',
-                        'after'     => '</div>',
-                        'reply_text'=> __( 'Reply', 'news-1' ),
-                    ] ) );
+                    $author_name   = get_comment_author();
+                    $avatar_letter = strtoupper( mb_substr( $author_name, 0, 1 ) );
                     ?>
+                    <div class="comment-inner">
+                    <div class="comment-avatar" aria-hidden="true"><?php echo esc_html( $avatar_letter ); ?></div>
+                    <div class="comment-body">
+                        <div class="comment-meta-line">
+                            <span class="comment-author-name"><?php comment_author(); ?></span>
+                            <span class="comment-date-info"><?php comment_date( 'M j, Y' ); ?> at <?php comment_time( 'g:i a' ); ?></span>
+                        </div>
+
+                        <?php if ( '0' === $comment->comment_approved ) : ?>
+                        <div class="comment-pending">&#9679; Awaiting moderation</div>
+                        <?php endif; ?>
+
+                        <div class="comment-text"><?php comment_text(); ?></div>
+
+                        <div class="comment-actions">
+                        <?php
+                        comment_reply_link( array_merge( $args, [
+                            'depth'      => $depth,
+                            'max_depth'  => $args['max_depth'],
+                            'before'     => '',
+                            'after'      => '',
+                            'reply_text' => 'Reply',
+                        ] ) );
+                        ?>
+                        </div>
+                    </div>
+                    </div><!-- .comment-inner -->
                 <?php
             },
             'end-callback' => function( $comment, $args, $depth ) {
