@@ -81,63 +81,9 @@ function news1_today_view_key() {
     return '_post_views_' . date( 'Ymd' );
 }
 
-/* ===== SEO Meta Tags ===== */
-function news1_seo_meta() {
-    global $post;
-
-    if ( is_singular() && $post ) {
-        $desc  = $post->post_excerpt ?: wp_trim_words( strip_tags( $post->post_content ), 30, '' );
-        $desc  = esc_attr( $desc );
-        $title = esc_attr( get_the_title( $post->ID ) );
-        $url   = esc_url( get_permalink( $post->ID ) );
-        $img   = has_post_thumbnail( $post->ID ) ? get_the_post_thumbnail_url( $post->ID, 'news-hero' ) : '';
-
-        echo '<meta name="description" content="' . $desc . '">' . "\n";
-        echo '<meta property="og:type" content="article">' . "\n";
-        echo '<meta property="og:title" content="' . $title . '">' . "\n";
-        echo '<meta property="og:description" content="' . $desc . '">' . "\n";
-        echo '<meta property="og:url" content="' . $url . '">' . "\n";
-        if ( $img ) echo '<meta property="og:image" content="' . esc_url( $img ) . '">' . "\n";
-        echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
-        echo '<meta name="twitter:title" content="' . $title . '">' . "\n";
-        echo '<meta name="twitter:description" content="' . $desc . '">' . "\n";
-        if ( $img ) echo '<meta name="twitter:image" content="' . esc_url( $img ) . '">' . "\n";
-        echo '<link rel="canonical" href="' . $url . '">' . "\n";
-
-        $schema = [
-            '@context'      => 'https://schema.org',
-            '@type'         => 'NewsArticle',
-            'headline'      => get_the_title( $post->ID ),
-            'datePublished' => get_the_date( 'c', $post->ID ),
-            'dateModified'  => get_the_modified_date( 'c', $post->ID ),
-            'author'        => [ '@type' => 'Person', 'name' => get_the_author_meta( 'display_name', $post->post_author ) ],
-            'publisher'     => [ '@type' => 'Organization', 'name' => get_bloginfo( 'name' ) ],
-            'url'           => get_permalink( $post->ID ),
-        ];
-        if ( $img ) $schema['image'] = $img;
-        echo '<script type="application/ld+json">' . wp_json_encode( $schema ) . '</script>' . "\n";
-
-    } elseif ( is_home() || is_front_page() ) {
-        $desc = esc_attr( get_bloginfo( 'description' ) );
-        echo '<meta name="description" content="' . $desc . '">' . "\n";
-        echo '<meta property="og:type" content="website">' . "\n";
-        echo '<meta property="og:title" content="' . esc_attr( get_bloginfo( 'name' ) ) . '">' . "\n";
-        echo '<meta property="og:description" content="' . $desc . '">' . "\n";
-        echo '<meta property="og:url" content="' . esc_url( home_url( '/' ) ) . '">' . "\n";
-
-    } elseif ( is_category() || is_tag() || is_archive() ) {
-        $obj  = get_queried_object();
-        $name = isset( $obj->name ) ? $obj->name : get_the_archive_title();
-        $desc = ( isset( $obj->description ) && $obj->description )
-            ? esc_attr( $obj->description )
-            : esc_attr( sprintf( 'Browse articles in %s', $name ) );
-        echo '<meta name="description" content="' . $desc . '">' . "\n";
-        if ( isset( $obj->term_id ) ) {
-            echo '<link rel="canonical" href="' . esc_url( get_term_link( $obj ) ) . '">' . "\n";
-        }
-    }
-}
-add_action( 'wp_head', 'news1_seo_meta', 1 );
+/* ===== SEO Meta Tags — disabled: Rank Math handles all SEO meta ===== */
+// function news1_seo_meta() { ... }
+// add_action( 'wp_head', 'news1_seo_meta', 1 );
 
 /* ===== Customizer: Social Links ===== */
 add_action( 'customize_register', function( $wp_customize ) {
