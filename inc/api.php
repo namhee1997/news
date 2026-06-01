@@ -95,16 +95,14 @@ function news1_api_upload_media( WP_REST_Request $request ) {
         $name .= '.jpg';
     }
 
-    $moved = wp_handle_upload(
-        [
-            'name'     => $name,
-            'type'     => $file['type'] ?? 'image/jpeg',
-            'tmp_name' => $file['tmp_name'],
-            'error'    => $file['error'],
-            'size'     => $file['size'],
-        ],
-        [ 'test_form' => false ]
-    );
+    $upload_file = [
+        'name'     => $name,
+        'type'     => $file['type'] ?? 'image/jpeg',
+        'tmp_name' => $file['tmp_name'],
+        'error'    => $file['error'],
+        'size'     => $file['size'],
+    ];
+    $moved = wp_handle_upload( $upload_file, [ 'test_form' => false ] );
 
     if ( isset( $moved['error'] ) ) {
         return new WP_Error( 'move_failed', $moved['error'], [ 'status' => 500 ] );
