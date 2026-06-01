@@ -2,6 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 require_once get_template_directory() . '/inc/stats-telegram.php';
+require_once get_template_directory() . '/inc/api.php';
 
 /* ===== Theme Setup ===== */
 function news1_setup() {
