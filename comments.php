@@ -33,7 +33,7 @@ if ( post_password_required() ) return;
                     <div class="comment-body">
                         <div class="comment-meta-line">
                             <span class="comment-author-name"><?php comment_author(); ?></span>
-                            <span class="comment-date-info"><?php comment_date( 'M j, Y' ); ?> at <?php comment_time( 'g:i a' ); ?></span>
+                            <span class="comment-date-info" title="<?php comment_date( 'M j, Y' ); ?> at <?php comment_time( 'g:i a' ); ?>"><?php echo esc_html( news1_time_ago( get_comment_time( 'U' ) ) ); ?></span>
                         </div>
 
                         <?php if ( '0' === $comment->comment_approved ) : ?>
