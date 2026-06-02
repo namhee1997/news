@@ -63,7 +63,7 @@
                 </h2>
                 <div class="post-card-meta">
                     <span><?php the_author(); ?></span>
-                    <span><?php echo get_the_date(); ?></span>
+                    <span><?php echo news1_time_ago(); ?></span>
                     <?php if ( $sort_param === 'popular' ) : ?>
                     <span><?php echo number_format( news1_get_views() ); ?> <?php _e( 'views', 'news-1' ); ?></span>
                     <?php endif; ?>

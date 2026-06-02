@@ -56,7 +56,7 @@
                 <div class="hero-title">
                     <a href="<?php the_permalink(); ?>" style="color:#fff;"><?php the_title(); ?></a>
                 </div>
-                <div class="hero-meta"><?php the_author(); ?> &bull; <?php echo get_the_date(); ?></div>
+                <div class="hero-meta"><?php the_author(); ?> &bull; <?php echo news1_time_ago(); ?></div>
             </div>
         </div>
         <?php while ( $hero_q->have_posts() ) : $hero_q->the_post(); ?>
@@ -69,7 +69,7 @@
                 <div class="hero-title">
                     <a href="<?php the_permalink(); ?>" style="color:#fff;"><?php the_title(); ?></a>
                 </div>
-                <div class="hero-meta"><?php echo get_the_date(); ?></div>
+                <div class="hero-meta"><?php echo news1_time_ago(); ?></div>
             </div>
         </div>
         <?php endwhile; wp_reset_postdata(); ?>
@@ -114,7 +114,7 @@
                     <div class="hero-title" style="font-size:18px;">
                         <a href="<?php the_permalink(); ?>" style="color:#fff;"><?php the_title(); ?></a>
                     </div>
-                    <div class="hero-meta"><?php the_author(); ?> &bull; <?php echo get_the_date(); ?></div>
+                    <div class="hero-meta"><?php the_author(); ?> &bull; <?php echo news1_time_ago(); ?></div>
                 </div>
             </div>
             <!-- Side list -->
@@ -128,7 +128,7 @@
                     </div>
                     <div class="post-list-body">
                         <div class="post-list-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></div>
-                        <div class="post-list-meta"><?php echo get_the_date(); ?></div>
+                        <div class="post-list-meta"><?php echo news1_time_ago(); ?></div>
                     </div>
                 </div>
                 <?php endwhile; wp_reset_postdata(); ?>

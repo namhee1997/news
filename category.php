@@ -46,7 +46,7 @@
                 </h2>
                 <div class="post-card-meta">
                     <span><?php the_author(); ?></span>
-                    <span><?php echo get_the_date(); ?></span>
+                    <span><?php echo news1_time_ago(); ?></span>
                     <span><?php comments_number( '0', '1', '%' ); ?> <?php _e( 'cmts', 'news-1' ); ?></span>
                 </div>
             </div>

@@ -33,7 +33,7 @@
                 </h2>
                 <div style="font-size:14px;color:#666;margin:5px 0;"><?php the_excerpt(); ?></div>
                 <div class="post-list-meta">
-                    <?php the_author(); ?> &bull; <?php echo get_the_date(); ?>
+                    <?php the_author(); ?> &bull; <?php echo news1_time_ago(); ?>
                 </div>
             </div>
         </article>

@@ -264,7 +264,7 @@ function news1_related_posts( $post_id, $count = 6 ) {
                 <h4 class="related-post-title">
                     <a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
                 </h4>
-                <div class="related-date"><?php echo get_the_date(); ?></div>
+                <div class="related-date"><?php echo news1_time_ago(); ?></div>
             </div>
         </div>
         <?php endwhile; wp_reset_postdata(); ?>
@@ -294,6 +294,30 @@ function news1_pagination( $query = null ) {
         echo '<div class="pagination">';
         foreach ( $links as $link ) echo $link;
         echo '</div>';
+    }
+}
+
+/* ===== Helper: Relative Time ===== */
+function news1_time_ago( $timestamp = null ) {
+    if ( null === $timestamp ) {
+        $timestamp = get_post_time( 'U' );
+    }
+    $now  = current_time( 'timestamp' );
+    $diff = max( 0, $now - (int) $timestamp );
+
+    if ( $diff < 60 ) {
+        return __( 'Just now', 'news-1' );
+    } elseif ( $diff < 3600 ) {
+        $n = max( 1, round( $diff / 60 ) );
+        return sprintf( _n( '%d minute ago', '%d minutes ago', $n, 'news-1' ), $n );
+    } elseif ( $diff < 86400 ) {
+        $n = max( 1, round( $diff / 3600 ) );
+        return sprintf( _n( '%d hour ago', '%d hours ago', $n, 'news-1' ), $n );
+    } elseif ( $diff < 604800 ) {
+        $n = max( 1, round( $diff / 86400 ) );
+        return sprintf( _n( '%d day ago', '%d days ago', $n, 'news-1' ), $n );
+    } else {
+        return date_i18n( get_option( 'date_format' ), $timestamp );
     }
 }
 

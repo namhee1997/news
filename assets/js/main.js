@@ -75,4 +75,28 @@
         }
     });
 
+    /* ===== Author popup ===== */
+    var $authorOverlay = $('#author-popup-overlay');
+
+    $(document).on('click', '.author-popup-trigger', function() {
+        var name = $(this).data('name') || '';
+        var bio  = $(this).data('bio') || '';
+        $authorOverlay.find('.author-popup-name').text(name);
+        $authorOverlay.find('.author-popup-bio').text(bio);
+        $authorOverlay.addClass('is-open');
+        $authorOverlay.find('.author-popup-close').focus();
+    });
+
+    $authorOverlay.on('click', function(e) {
+        if ($(e.target).is($authorOverlay) || $(e.target).is('.author-popup-close')) {
+            $authorOverlay.removeClass('is-open');
+        }
+    });
+
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape') {
+            $authorOverlay.removeClass('is-open');
+        }
+    });
+
 })(jQuery);

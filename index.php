@@ -33,7 +33,7 @@
                 </h2>
                 <div class="post-card-meta">
                     <span><?php the_author(); ?></span>
-                    <span><?php echo get_the_date(); ?></span>
+                    <span><?php echo news1_time_ago(); ?></span>
                 </div>
             </div>
         </article>

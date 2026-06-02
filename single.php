@@ -25,17 +25,19 @@
             <div class="single-post-meta">
                 <span>
                     <?php _e( 'By', 'news-1' ); ?>
-                    <a href="<?php echo esc_url( get_author_posts_url( get_the_author_meta( 'ID' ) ) ); ?>">
+                    <button type="button" class="author-popup-trigger"
+                            data-name="<?php echo esc_attr( get_the_author() ); ?>"
+                            data-bio="<?php echo esc_attr( get_the_author_meta( 'description' ) ?: __( 'News reporter and editor.', 'news-1' ) ); ?>">
                         <?php the_author(); ?>
-                    </a>
+                    </button>
                 </span>
-                <span><?php echo get_the_date(); ?></span>
+                <span><?php echo news1_time_ago(); ?></span>
                 <?php
-                $modified = get_the_modified_date();
-                $published = get_the_date();
-                if ( $modified && $modified !== $published ) :
+                $pub_ts = get_post_time( 'U' );
+                $mod_ts = get_post_modified_time( 'U' );
+                if ( $mod_ts > $pub_ts ) :
                 ?>
-                <span><?php _e( 'Updated:', 'news-1' ); ?> <?php echo $modified; ?></span>
+                <span><?php _e( 'Updated:', 'news-1' ); ?> <?php echo news1_time_ago( $mod_ts ); ?></span>
                 <?php endif; ?>
                 <?php if ( comments_open() ) : ?>
                 <span>
@@ -126,19 +128,6 @@
 
         </article>
 
-        <!-- Author Box -->
-        <?php $author_desc = get_the_author_meta( 'description' ); ?>
-        <div class="author-box">
-            <div class="author-info">
-                <h4>
-                    <a href="<?php echo esc_url( get_author_posts_url( get_the_author_meta( 'ID' ) ) ); ?>">
-                        <?php the_author(); ?>
-                    </a>
-                </h4>
-                <p><?php echo $author_desc ?: __( 'News reporter and editor.', 'news-1' ); ?></p>
-            </div>
-        </div>
-
         <!-- Prev / Next post navigation -->
         <?php
         $prev = get_previous_post();
@@ -176,6 +165,15 @@
         <?php news1_related_posts( get_the_ID(), 8 ); ?>
     </aside>
 
+</div>
+
+<!-- Author Popup -->
+<div id="author-popup-overlay" class="author-popup-overlay" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e( 'Author info', 'news-1' ); ?>">
+    <div class="author-popup-box">
+        <button class="author-popup-close" aria-label="<?php esc_attr_e( 'Close', 'news-1' ); ?>">&times;</button>
+        <h3 class="author-popup-name"></h3>
+        <p class="author-popup-bio"></p>
+    </div>
 </div>
 
 <?php get_footer(); ?>
