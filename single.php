@@ -23,13 +23,24 @@
 
             <!-- Meta -->
             <div class="single-post-meta">
-                <span>
+                <?php
+                $author_bio = get_the_author_meta( 'description' );
+                if ( ! $author_bio ) {
+                    $author_bio = sprintf(
+                        __( '%s is a sports and events writer for ClutchPoints, primarily covering events and athletes from the NBA, NFL, NCAA Basketball, and MLB. The Denver native graduated from Colorado State and has previously written at three local news outlets in the area.', 'news-1' ),
+                        get_the_author()
+                    );
+                }
+                ?>
+                <span class="author-trigger-wrap">
                     <?php _e( 'By', 'news-1' ); ?>
-                    <button type="button" class="author-popup-trigger"
-                            data-name="<?php echo esc_attr( get_the_author() ); ?>"
-                            data-bio="<?php echo esc_attr( get_the_author_meta( 'description' ) ?: __( 'News reporter and editor.', 'news-1' ) ); ?>">
+                    <button type="button" class="author-popup-trigger">
                         <?php the_author(); ?>
                     </button>
+                    <div class="author-tooltip" role="tooltip">
+                        <strong class="author-tooltip-name"><?php echo esc_html( get_the_author() ); ?></strong>
+                        <p class="author-tooltip-bio"><?php echo esc_html( $author_bio ); ?></p>
+                    </div>
                 </span>
                 <span><?php echo news1_time_ago(); ?></span>
                 <?php
@@ -165,15 +176,6 @@
         <?php news1_related_posts( get_the_ID(), 8 ); ?>
     </aside>
 
-</div>
-
-<!-- Author Popup -->
-<div id="author-popup-overlay" class="author-popup-overlay" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e( 'Author info', 'news-1' ); ?>">
-    <div class="author-popup-box">
-        <button class="author-popup-close" aria-label="<?php esc_attr_e( 'Close', 'news-1' ); ?>">&times;</button>
-        <h3 class="author-popup-name"></h3>
-        <p class="author-popup-bio"></p>
-    </div>
 </div>
 
 <?php get_footer(); ?>

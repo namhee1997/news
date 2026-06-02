@@ -697,7 +697,13 @@ ul { list-style: none; }
 .post-nav-label { font-size: 11px; color: #999; margin-bottom: 5px; }
 .post-nav-title { font-size: 14px; font-weight: 700; line-height: 1.4; }
 
-/* Author popup trigger button */
+/* Author tooltip */
+.author-trigger-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
 .author-popup-trigger {
     background: none;
     border: none;
@@ -712,51 +718,35 @@ ul { list-style: none; }
 }
 .author-popup-trigger:hover { text-decoration: underline; }
 
-/* Author popup overlay */
-.author-popup-overlay {
+.author-tooltip {
     display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.55);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-}
-.author-popup-overlay.is-open { display: flex; }
-
-.author-popup-box {
-    background: #fff;
-    border-radius: 8px;
-    padding: 32px 28px 28px;
-    max-width: 480px;
-    width: calc(100% - 32px);
-    position: relative;
-    box-shadow: 0 8px 32px rgba(0,0,0,.18);
-}
-.author-popup-close {
     position: absolute;
-    top: 12px;
-    right: 14px;
-    background: none;
-    border: none;
-    font-size: 22px;
+    top: calc(100% + 8px);
+    left: 0;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    width: 300px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.13);
+    z-index: 999;
+    font-size: 13px;
     line-height: 1;
-    cursor: pointer;
-    color: #888;
-    padding: 4px 8px;
 }
-.author-popup-close:hover { color: #222; }
-.author-popup-name {
-    font-size: 18px;
-    font-weight: 800;
-    margin-bottom: 12px;
-    color: var(--color-dark);
-}
-.author-popup-bio {
+.author-trigger-wrap.tooltip-open .author-tooltip { display: block; }
+
+.author-tooltip-name {
+    display: block;
     font-size: 14px;
-    color: #555;
-    line-height: 1.75;
+    font-weight: 800;
+    color: var(--color-dark);
+    margin-bottom: 8px;
+}
+.author-tooltip-bio {
     margin: 0;
+    color: #555;
+    font-size: 13px;
+    line-height: 1.65;
 }
 
 /* ===== COMMENTS ===== */
