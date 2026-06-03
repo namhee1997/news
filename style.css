@@ -671,6 +671,8 @@ ul { list-style: none; }
     text-decoration: none;
     transition: opacity .2s;
     height: 36px;
+    min-width: 36px;
+    justify-content: center;
 }
 .share-btn:hover { opacity: .87; color: #fff; }
 .share-btn.facebook { background: #1877f2; }
@@ -1117,6 +1119,7 @@ ul { list-style: none; }
 .footer-social-icons { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .footer-social-btn {
+    min-width: 43px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -1126,6 +1129,7 @@ ul { list-style: none; }
     font-weight: 700;
     color: #fff;
     transition: opacity .2s;
+    justify-content: center;
 }
 .footer-social-btn:hover { opacity: .85; color: #fff; }
 .social-icon { font-weight: 900; font-size: 15px; }
@@ -1140,7 +1144,7 @@ ul { list-style: none; }
 }
 .footer-widgets-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 30px;
 }
 

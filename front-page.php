@@ -91,7 +91,7 @@
 
     <!-- ===== CATEGORY SECTIONS (top 4 most populated cats) ===== -->
     <?php
-    $feature_cats = get_categories( [ 'number' => 4, 'hide_empty' => true, 'orderby' => 'count', 'order' => 'DESC' ] );
+    $feature_cats = get_categories( [ 'number' => 20, 'hide_empty' => true, 'orderby' => 'count', 'order' => 'DESC' ] );
     foreach ( $feature_cats as $fc ) :
         $cat_q = new WP_Query( [ 'cat' => $fc->term_id, 'posts_per_page' => 4, 'ignore_sticky_posts' => true ] );
         if ( ! $cat_q->have_posts() ) continue;
