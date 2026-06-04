@@ -915,6 +915,7 @@ ul { list-style: none; }
 .comment-form-cookies-consent input[type="checkbox"] { flex-shrink: 0; margin-top: 2px; }
 .comment-form-cookies-consent label { display: inline; font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0; color: #666; margin-bottom: 0; }
 .comment-form input[type="text"],
+.comment-form input[type="email"],
 .comment-form textarea {
     width: 100%;
     border: 1px solid #ddd;
