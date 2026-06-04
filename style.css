@@ -413,7 +413,9 @@ ul { list-style: none; }
     gap: 18px;
     margin-bottom: 24px;
 }
-
+img.attachment-news-hero.size-news-hero.wp-post-image {
+    width: 100%;
+}
 .post-card {
     background: #fff;
     border-radius: 4px;
