@@ -137,30 +137,131 @@ function news1_widgets_init() {
 }
 add_action( 'widgets_init', 'news1_widgets_init' );
 
-/* ===== Comments: only Name + Content, no email/login required ===== */
+/* ===== Comments: Email + Content, no login required ===== */
 
 // No login needed to comment (overrides Settings → Discussion)
 add_filter( 'option_comment_registration',        '__return_zero' );
 
-// Auto-approve first-time commenters (no manual moderation queue)
+// Force all comments to be approved immediately — bypasses Settings → Discussion
+add_filter( 'pre_comment_approved', function() { return 1; }, 99 );
 add_filter( 'option_comment_previously_approved', '__return_zero' );
+add_filter( 'option_comment_moderation',          '__return_zero' );
 
 // Disable comment flood protection (too quickly error)
 add_filter( 'comment_flood_filter', '__return_false' );
 
-// Name field not required either
+// Disable built-in name+email check — we validate email ourselves
 add_filter( 'option_require_name_email', '__return_false' );
 
 // Enable threaded (nested) comments at depth 5 (overrides Settings → Discussion)
 add_filter( 'option_thread_comments',       '__return_true' );
 add_filter( 'option_thread_comments_depth', function() { return 5; } );
 
-// Remove email, url, cookies fields from comment form
+// Remove url, cookies fields from default fields (email stays in our custom field)
 add_filter( 'comment_form_default_fields', function( $fields ) {
-    unset( $fields['email'] );
+    unset( $fields['author'] );
     unset( $fields['url'] );
     unset( $fields['cookies'] );
     return $fields;
+} );
+
+// Validate email and set display name from email username part
+add_filter( 'preprocess_comment', function( $data ) {
+    $email = sanitize_email( $data['comment_author_email'] ?? '' );
+    if ( ! is_email( $email ) ) {
+        wp_die(
+            __( 'A valid email address is required to leave a comment.', 'news-1' ),
+            __( 'Comment Error', 'news-1' ),
+            [ 'back_link' => true, 'response' => 400 ]
+        );
+    }
+    // Mask as first 2 chars + *** + @domain (e.g. john@gmail.com → jo***@gmail.com)
+    $username = strstr( $email, '@', true );
+    $domain   = substr( strstr( $email, '@' ), 1 );
+    $visible  = mb_substr( $username, 0, min( 2, mb_strlen( $username ) ) );
+    $data['comment_author'] = $visible . '***@' . $domain;
+    return $data;
+} );
+
+// Save unique commenter emails to wp_options for admin collection
+add_action( 'comment_post', function( $comment_id ) {
+    $comment = get_comment( $comment_id );
+    if ( ! $comment || ! is_email( $comment->comment_author_email ) ) {
+        return;
+    }
+    $emails = get_option( 'news1_comment_emails', [] );
+    if ( ! in_array( $comment->comment_author_email, $emails, true ) ) {
+        $emails[] = $comment->comment_author_email;
+        update_option( 'news1_comment_emails', $emails, false );
+    }
+}, 10, 1 );
+
+// Admin: Tools → Comment Emails page
+add_action( 'admin_menu', function() {
+    add_submenu_page(
+        'tools.php',
+        'Comment Emails',
+        'Comment Emails',
+        'manage_options',
+        'news1-comment-emails',
+        'news1_comment_emails_page'
+    );
+} );
+
+function news1_comment_emails_page() {
+    if ( isset( $_POST['news1_clear_emails'] ) && check_admin_referer( 'news1_clear_emails' ) ) {
+        delete_option( 'news1_comment_emails' );
+    }
+    $emails = get_option( 'news1_comment_emails', [] );
+    ?>
+    <div class="wrap">
+        <h1>Comment Emails</h1>
+        <p>Total: <strong><?php echo count( $emails ); ?></strong> unique email(s) collected from comments.</p>
+        <?php if ( $emails ) : ?>
+        <p>
+            <a href="<?php echo esc_url( add_query_arg( 'news1_export_emails', '1', admin_url() ) ); ?>" class="button">Export CSV</a>
+            &nbsp;
+            <form method="post" style="display:inline">
+                <?php wp_nonce_field( 'news1_clear_emails' ); ?>
+                <button type="submit" name="news1_clear_emails" class="button button-link-delete"
+                    onclick="return confirm('Clear all collected emails? This cannot be undone.')">
+                    Clear All
+                </button>
+            </form>
+        </p>
+        <table class="widefat striped" style="max-width:560px">
+            <thead>
+                <tr><th style="width:40px">#</th><th>Email</th></tr>
+            </thead>
+            <tbody>
+            <?php foreach ( $emails as $i => $email ) : ?>
+                <tr>
+                    <td><?php echo $i + 1; ?></td>
+                    <td><?php echo esc_html( $email ); ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php else : ?>
+        <p style="color:#888">No emails collected yet.</p>
+        <?php endif; ?>
+    </div>
+    <?php
+}
+
+// CSV export handler
+add_action( 'admin_init', function() {
+    if ( ! isset( $_GET['news1_export_emails'] ) || ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+    $emails = get_option( 'news1_comment_emails', [] );
+    header( 'Content-Type: text/csv; charset=utf-8' );
+    header( 'Content-Disposition: attachment; filename="comment-emails-' . date( 'Ymd' ) . '.csv"' );
+    echo "Email\n";
+    foreach ( $emails as $email ) {
+        echo sanitize_email( $email ) . "\n";
+    }
+    exit;
 } );
 
 /* ===== Helper: Thumbnail or Placeholder ===== */

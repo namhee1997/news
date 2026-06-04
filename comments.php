@@ -93,10 +93,10 @@ if ( post_password_required() ) return;
             'comment_notes_before' => '',
             'comment_notes_after'  => '',
             'fields' => [
-                'author' => '<div class="form-row"><label for="author">'
-                    . __( 'Name', 'news-1' )
+                'email' => '<div class="form-row"><label for="email">'
+                    . __( 'Email', 'news-1' )
                     . ' <span aria-hidden="true">*</span></label>'
-                    . '<input id="author" name="author" type="text" required autocomplete="name" maxlength="245"></div>',
+                    . '<input id="email" name="email" type="email" required autocomplete="email" maxlength="245"></div>',
             ],
             'comment_field' => '<div class="form-row"><label for="comment">'
                 . __( 'Comment', 'news-1' )
