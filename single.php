@@ -84,7 +84,7 @@
             <!-- Featured Image -->
             <?php if ( has_post_thumbnail() ) : ?>
             <div class="single-post-thumb">
-                <?php the_post_thumbnail( 'news-wide', [ 'alt' => get_the_title() ] ); ?>
+                <?php the_post_thumbnail( 'full', [ 'alt' => get_the_title() ] ); ?>
                 <?php $cap = get_the_post_thumbnail_caption(); if ( $cap ) : ?>
                 <p class="thumb-caption"><?php echo esc_html( $cap ); ?></p>
                 <?php endif; ?>

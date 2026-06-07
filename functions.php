@@ -19,10 +19,10 @@ function news1_setup() {
     add_theme_support( 'customize-selective-refresh-widgets' );
     add_theme_support( 'responsive-embeds' );
 
-    add_image_size( 'news-hero',  800, 420, true );
-    add_image_size( 'news-card',  420, 250, true );
-    add_image_size( 'news-thumb', 160, 100, true );
-    add_image_size( 'news-wide',  1200, 500, true );
+    add_image_size( 'news-hero',  800, 420, [ 'center', 'top' ] );
+    add_image_size( 'news-card',  420, 250, [ 'center', 'top' ] );
+    add_image_size( 'news-thumb', 160, 100, [ 'center', 'top' ] );
+    add_image_size( 'news-wide',  1200, 500, [ 'center', 'top' ] );
 
     register_nav_menus( [
         'primary' => __( 'Primary Menu', 'news-1' ),
@@ -268,6 +268,14 @@ add_action( 'admin_init', function() {
 function news1_get_thumbnail( $post_id = null, $size = 'news-card', $attr = [] ) {
     $attr['loading'] = 'lazy';
     if ( has_post_thumbnail( $post_id ) ) {
+        // Square or portrait → anchor top; landscape → center (default)
+        $cropped_sizes = [ 'news-card', 'news-hero', 'news-thumb', 'news-wide' ];
+        if ( in_array( $size, $cropped_sizes ) ) {
+            $meta = wp_get_attachment_metadata( get_post_thumbnail_id( $post_id ) );
+            if ( ! empty( $meta['height'] ) && ! empty( $meta['width'] ) && $meta['height'] >= $meta['width'] ) {
+                $attr['class'] = trim( ( $attr['class'] ?? 'wp-post-image' ) . ' thumb-anchor-top' );
+            }
+        }
         return get_the_post_thumbnail( $post_id, $size, $attr );
     }
     $w = 600; $h = 360;
