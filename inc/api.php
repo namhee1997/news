@@ -3,9 +3,11 @@
  * Custom REST API for the news-crawler automation tool.
  *
  * Endpoints:
- *   GET  /wp-json/news1/v1/categories  — public
- *   POST /wp-json/news1/v1/media       — requires X-API-Key header
- *   POST /wp-json/news1/v1/posts       — requires X-API-Key header
+ *   GET   /wp-json/news1/v1/categories   — public
+ *   POST  /wp-json/news1/v1/media        — requires X-API-Key header
+ *   POST  /wp-json/news1/v1/posts        — requires X-API-Key header
+ *   GET   /wp-json/news1/v1/posts        — requires X-API-Key header  ?per_page=100&page=1&fields=id,title
+ *   PATCH /wp-json/news1/v1/posts/{id}   — requires X-API-Key header
  *
  * Add to wp-config.php:
  *   define( 'NEWS1_API_KEY', 'your-secret-key-here' );
@@ -34,6 +36,21 @@ add_action( 'rest_api_init', function () {
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'news1_api_create_post',
         'permission_callback' => 'news1_api_auth',
+    ] );
+
+    register_rest_route( 'news1/v1', '/posts', [
+        'methods'             => WP_REST_Server::READABLE,
+        'callback'            => 'news1_api_list_posts',
+        'permission_callback' => 'news1_api_auth',
+    ] );
+
+    register_rest_route( 'news1/v1', '/posts/(?P<id>\d+)', [
+        'methods'             => 'PATCH',
+        'callback'            => 'news1_api_update_post',
+        'permission_callback' => 'news1_api_auth',
+        'args'                => [
+            'id' => [ 'validate_callback' => fn( $v ) => is_numeric( $v ) ],
+        ],
     ] );
 
 } );
@@ -185,5 +202,69 @@ function news1_api_create_post( WP_REST_Request $request ) {
         'id'       => $post_id,
         'url'      => get_permalink( $post_id ),
         'edit_url' => admin_url( 'post.php?post=' . $post_id . '&action=edit' ),
+    ] );
+}
+
+/* ── GET /posts ─────────────────────────────────────────────────────────── */
+
+function news1_api_list_posts( WP_REST_Request $request ) {
+    $per_page = min( absint( $request->get_param( 'per_page' ) ?: 100 ), 200 );
+    $page     = max( 1, absint( $request->get_param( 'page' ) ?: 1 ) );
+    $fields   = array_filter( explode( ',', $request->get_param( 'fields' ) ?: 'id,title' ) );
+
+    $query = new WP_Query( [
+        'post_type'      => 'post',
+        'post_status'    => 'publish',
+        'posts_per_page' => $per_page,
+        'paged'          => $page,
+        'orderby'        => 'ID',
+        'order'          => 'ASC',
+        'no_found_rows'  => false,
+    ] );
+
+    $results = [];
+    foreach ( $query->posts as $post ) {
+        $row = [];
+        if ( in_array( 'id',    $fields, true ) ) $row['id']    = $post->ID;
+        if ( in_array( 'title', $fields, true ) ) $row['title'] = $post->post_title;
+        if ( in_array( 'slug',  $fields, true ) ) $row['slug']  = $post->post_name;
+        $results[] = $row;
+    }
+
+    return rest_ensure_response( $results );
+}
+
+/* ── PATCH /posts/{id} ──────────────────────────────────────────────────── */
+
+function news1_api_update_post( WP_REST_Request $request ) {
+    $post_id = absint( $request->get_param( 'id' ) );
+    $post    = get_post( $post_id );
+
+    if ( ! $post || $post->post_type !== 'post' ) {
+        return new WP_Error( 'not_found', 'Post not found.', [ 'status' => 404 ] );
+    }
+
+    $params = $request->get_json_params();
+    $update = [ 'ID' => $post_id ];
+
+    if ( isset( $params['title'] ) ) {
+        $update['post_title'] = sanitize_text_field( $params['title'] );
+    }
+    if ( isset( $params['content'] ) ) {
+        $update['post_content'] = wp_kses_post( $params['content'] );
+    }
+
+    if ( count( $update ) === 1 ) {
+        return new WP_Error( 'no_fields', 'No updatable fields provided.', [ 'status' => 400 ] );
+    }
+
+    $result = wp_update_post( $update, true );
+    if ( is_wp_error( $result ) ) {
+        return new WP_Error( 'update_failed', $result->get_error_message(), [ 'status' => 500 ] );
+    }
+
+    return rest_ensure_response( [
+        'id'    => $post_id,
+        'title' => get_the_title( $post_id ),
     ] );
 }
