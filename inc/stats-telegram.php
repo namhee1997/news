@@ -10,9 +10,31 @@ define( 'NEWS1_TG_CHAT_ID', '-1003763396919' );
 
 add_action( 'wp_head', 'news1_track_visit', 1 );
 
+function news1_is_bot() {
+    $ua = isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : '';
+    if ( empty( $ua ) ) return true;
+
+    $patterns = [
+        'bot', 'crawler', 'spider', 'slurp', 'crawling',
+        'googlebot', 'bingbot', 'yandex', 'baiduspider', 'duckduckbot',
+        'semrushbot', 'ahrefsbot', 'mj12bot', 'dotbot', 'rogerbot',
+        'facebookexternalhit', 'twitterbot', 'linkedinbot', 'slackbot', 'whatsapp',
+        'python-requests', 'python-urllib', 'go-http-client', 'java/', 'curl/', 'wget/',
+        'scrapy', 'selenium', 'phantomjs', 'headlesschrome', 'headless',
+        'axios', 'libwww-perl', 'lwp-', 'okhttp', 'apache-httpclient',
+    ];
+
+    $ua_lower = strtolower( $ua );
+    foreach ( $patterns as $p ) {
+        if ( strpos( $ua_lower, $p ) !== false ) return true;
+    }
+    return false;
+}
+
 function news1_track_visit() {
     if ( is_admin() || wp_is_json_request() || is_feed() ) return;
     if ( defined( 'DOING_CRON' ) && DOING_CRON ) return;
+    if ( news1_is_bot() ) return;
 
     $ip      = news1_get_visitor_ip();
     $geo     = news1_get_country( $ip );
