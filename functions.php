@@ -278,11 +278,9 @@ function news1_get_thumbnail( $post_id = null, $size = 'news-card', $attr = [] )
         }
         return get_the_post_thumbnail( $post_id, $size, $attr );
     }
-    $w = 600; $h = 360;
-    if ( $size === 'news-hero' )  { $w = 800; $h = 420; }
-    if ( $size === 'news-thumb' ) { $w = 160; $h = 100; }
     $alt = esc_attr( isset( $attr['alt'] ) ? $attr['alt'] : get_the_title( $post_id ) );
-    return '<img src="https://placehold.co/' . $w . 'x' . $h . '/d0d0d0/888888?text=No+Image" alt="' . $alt . '" loading="lazy">';
+    $src = esc_url( get_template_directory_uri() . '/assets/images/not-image.jpeg' );
+    return '<img src="' . $src . '" alt="' . $alt . '" loading="lazy" class="wp-post-image news1-no-image">';
 }
 
 /* ===== Helper: Primary Category Label ===== */

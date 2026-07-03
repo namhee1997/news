@@ -8,6 +8,8 @@
  *   POST  /wp-json/news1/v1/posts        — requires X-API-Key header
  *   GET   /wp-json/news1/v1/posts        — requires X-API-Key header  ?per_page=100&page=1&fields=id,title
  *   PATCH /wp-json/news1/v1/posts/{id}   — requires X-API-Key header
+ *   GET   /wp-json/news1/v1/posts/pending-image-cleanup   — requires X-API-Key header  ?days=30&per_page=50&page=1
+ *   DELETE /wp-json/news1/v1/posts/{id}/images   — requires X-API-Key header
  *
  * Add to wp-config.php:
  *   define( 'NEWS1_API_KEY', 'your-secret-key-here' );
@@ -47,6 +49,21 @@ add_action( 'rest_api_init', function () {
     register_rest_route( 'news1/v1', '/posts/(?P<id>\d+)', [
         'methods'             => 'PATCH',
         'callback'            => 'news1_api_update_post',
+        'permission_callback' => 'news1_api_auth',
+        'args'                => [
+            'id' => [ 'validate_callback' => fn( $v ) => is_numeric( $v ) ],
+        ],
+    ] );
+
+    register_rest_route( 'news1/v1', '/posts/pending-image-cleanup', [
+        'methods'             => WP_REST_Server::READABLE,
+        'callback'            => 'news1_api_pending_image_cleanup',
+        'permission_callback' => 'news1_api_auth',
+    ] );
+
+    register_rest_route( 'news1/v1', '/posts/(?P<id>\d+)/images', [
+        'methods'             => 'DELETE',
+        'callback'            => 'news1_api_purge_post_images',
         'permission_callback' => 'news1_api_auth',
         'args'                => [
             'id' => [ 'validate_callback' => fn( $v ) => is_numeric( $v ) ],
@@ -266,5 +283,103 @@ function news1_api_update_post( WP_REST_Request $request ) {
     return rest_ensure_response( [
         'id'    => $post_id,
         'title' => get_the_title( $post_id ),
+    ] );
+}
+
+/* ── GET /posts/pending-image-cleanup ───────────────────────────────────── */
+/**
+ * Lists published posts older than `days` (post_date) that have not yet had
+ * their images purged (no `_news1_images_purged` meta). Used by the
+ * delete-post automation to find candidates without re-scanning cleaned posts.
+ */
+function news1_api_pending_image_cleanup( WP_REST_Request $request ) {
+    $days     = max( 1, absint( $request->get_param( 'days' ) ?: 30 ) );
+    $per_page = min( absint( $request->get_param( 'per_page' ) ?: 50 ), 200 );
+    $page     = max( 1, absint( $request->get_param( 'page' ) ?: 1 ) );
+
+    $cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days", time() ) );
+
+    $query = new WP_Query( [
+        'post_type'      => 'post',
+        'post_status'    => 'publish',
+        'posts_per_page' => $per_page,
+        'paged'          => $page,
+        'orderby'        => 'date',
+        'order'          => 'ASC',
+        'date_query'     => [
+            [ 'column' => 'post_date_gmt', 'before' => $cutoff, 'inclusive' => true ],
+        ],
+        'meta_query'     => [
+            [ 'key' => '_news1_images_purged', 'compare' => 'NOT EXISTS' ],
+        ],
+        'no_found_rows'  => true,
+        'fields'         => 'ids',
+    ] );
+
+    return rest_ensure_response( array_map( function ( $id ) {
+        return [ 'id' => $id, 'date' => get_post_field( 'post_date', $id ) ];
+    }, $query->posts ) );
+}
+
+/* ── DELETE /posts/{id}/images ──────────────────────────────────────────── */
+/**
+ * Force-deletes the post's featured image attachment and any content images
+ * that live in this site's media library, stripping their markup from
+ * post_content so no broken <img> tags remain. Files are removed from disk
+ * (force delete, no trash) to actually free host storage.
+ */
+function news1_api_purge_post_images( WP_REST_Request $request ) {
+    $post_id = absint( $request->get_param( 'id' ) );
+    $post    = get_post( $post_id );
+
+    if ( ! $post || $post->post_type !== 'post' ) {
+        return new WP_Error( 'not_found', 'Post not found.', [ 'status' => 404 ] );
+    }
+
+    $deleted_ids = [];
+
+    // Featured image
+    $thumb_id = get_post_thumbnail_id( $post_id );
+    if ( $thumb_id ) {
+        delete_post_thumbnail( $post_id );
+        if ( wp_delete_attachment( $thumb_id, true ) ) {
+            $deleted_ids[] = $thumb_id;
+        }
+    }
+
+    // Content images — only ones that are actual attachments in this media library
+    $content = $post->post_content;
+    if ( $content && preg_match_all( '/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $content, $matches ) ) {
+        foreach ( array_unique( $matches[1] ) as $src ) {
+            $att_id = attachment_url_to_postid( $src );
+            if ( ! $att_id ) {
+                continue;
+            }
+
+            $escaped_src    = preg_quote( $src, '/' );
+            $figure_pattern = '/<figure[^>]*>\s*<img[^>]+src=["\']' . $escaped_src . '["\'][^>]*>.*?<\/figure>/is';
+            if ( preg_match( $figure_pattern, $content ) ) {
+                $content = preg_replace( $figure_pattern, '', $content );
+            } else {
+                $img_pattern = '/<img[^>]+src=["\']' . $escaped_src . '["\'][^>]*>/i';
+                $content     = preg_replace( $img_pattern, '', $content );
+            }
+
+            if ( wp_delete_attachment( $att_id, true ) ) {
+                $deleted_ids[] = $att_id;
+            }
+        }
+
+        if ( $content !== $post->post_content ) {
+            wp_update_post( [ 'ID' => $post_id, 'post_content' => $content ] );
+        }
+    }
+
+    update_post_meta( $post_id, '_news1_images_purged', current_time( 'mysql' ) );
+
+    return rest_ensure_response( [
+        'id'                     => $post_id,
+        'deleted_attachment_ids' => $deleted_ids,
+        'purged'                 => true,
     ] );
 }

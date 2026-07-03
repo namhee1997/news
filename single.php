@@ -89,6 +89,10 @@
                 <p class="thumb-caption"><?php echo esc_html( $cap ); ?></p>
                 <?php endif; ?>
             </div>
+            <?php else : ?>
+            <div class="single-post-thumb">
+                <?php echo news1_get_thumbnail( get_the_ID(), 'news-wide', [ 'alt' => get_the_title() ] ); ?>
+            </div>
             <?php endif; ?>
 
             <!-- Content -->
